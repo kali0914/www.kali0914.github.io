@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>NullByte - 网络安全团队</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        :root {
+            --blue: #3498db; --light-blue: #e3f2fd; --white: #ffffff;
+            --dark-text: #1a1f2e; --gray-text: #555;
+            --card-bg: rgba(255,255,255,0.85); --border: rgba(52,152,219,0.2);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        body {
+            background: linear-gradient(145deg, #e3f2fd 0%, #ffffff 40%, #bbdefb 100%);
+            color: var(--dark-text); min-height: 100vh; position: relative;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(15px);
+            border-bottom: 1px solid var(--border); padding: 0 40px;
+            display: flex; justify-content: space-between; align-items: center; height: 64px;
+            box-shadow: 0 2px 10px rgba(52,152,219,0.08);
+        }
+        .nav-logo {
+            font-size: 1.4rem; font-weight: 700; letter-spacing: 1px; color: var(--dark-text);
+            text-decoration: none;
+        }
+        .nav-logo span { color: var(--blue); }
+        .nav-links { display: flex; align-items: center; gap: 30px; list-style: none; }
+        .nav-links a { color: var(--dark-text); text-decoration: none; font-size: 0.9rem; transition: 0.2s; font-weight: 500; }
+        .nav-links a:hover { color: var(--blue); }
+        .nav-auth-btn {
+            background: var(--blue); color: #fff; border: none; padding: 8px 22px;
+            border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+            transition: 0.2s; letter-spacing: 0.5px;
+        }
+        .nav-auth-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 9999; display: flex;
+            justify-content: center; align-items: center; visibility: hidden; opacity: 0; transition: 0.25s;
+        }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal-card {
+            background: #fff; border-radius: 16px; padding: 40px; max-width: 440px; width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2); position: relative; max-height: 85vh; overflow-y: auto;
+        }
+        .modal-close {
+            position: absolute; top: 14px; right: 18px; background: none; border: none;
+            color: #999; font-size: 1.3rem; cursor: pointer;
+        }
+        .modal-close:hover { color: #333; }
+        .modal-tabs { display: flex; justify-content: center; margin-bottom: 28px; }
+        .modal-tab {
+            padding: 8px 22px; cursor: pointer; font-weight: 600; font-size: 0.95rem;
+            color: #999; border-bottom: 2px solid transparent; transition: 0.2s;
+        }
+        .modal-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+        .modal-form { display: none; }
+        .modal-form.active { display: block; }
+        .modal-input {
+            width: 100%; padding: 12px 16px; margin: 10px 0; border-radius: 8px;
+            background: #f5f7fa; border: 1px solid #ddd; color: #333; outline: none; font-size: 0.95rem;
+        }
+        .modal-input:focus { border-color: var(--blue); }
+        .modal-btn {
+            width: 100%; padding: 12px; background: var(--blue); color: #fff; border: none;
+            border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer;
+            margin-top: 12px; transition: 0.2s;
+        }
+        .modal-btn:hover { opacity: 0.85; }
+        .modal-btn.secondary { background: #e3f2fd; color: var(--blue); }
+        .modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .modal-message { font-size: 0.85rem; margin-top: 12px; text-align: center; color: #e74c3c; }
+        .forgot-link { color: var(--blue); font-size: 0.85rem; text-align: center; display: block; margin-top: 12px; cursor: pointer; }
+        .forgot-link:hover { text-decoration: underline; }
+
+        /* 英雄区 */
+        .hero {
+            padding: 160px 20px 100px; text-align: center; max-width: 900px; margin: 0 auto;
+        }
+        .hero h1 { font-size: clamp(2.8rem, 5vw, 4rem); font-weight: 800; color: var(--dark-text); letter-spacing: -1px; margin-bottom: 18px; }
+        .hero h1 span { color: var(--blue); }
+        .hero p { font-size: 1.2rem; color: var(--gray-text); max-width: 650px; margin: 0 auto 40px; line-height: 1.8; }
+
+        /* 通用区块 */
+        .section { padding: 80px 20px; max-width: 1100px; margin: 0 auto; }
+        .section-label { text-align: center; font-size: 0.8rem; letter-spacing: 3px; color: var(--blue); text-transform: uppercase; margin-bottom: 8px; font-weight: 600; }
+        .section-title { text-align: center; font-size: 2.2rem; font-weight: 700; color: var(--dark-text); margin-bottom: 50px; letter-spacing: -0.5px; }
+        .section-line { width: 60px; height: 3px; background: var(--blue); margin: 0 auto 40px; }
+
+        /* 理念卡片 */
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
+        .philosophy-card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+            padding: 35px 30px; transition: 0.2s; backdrop-filter: blur(5px);
+        }
+        .philosophy-card:hover { border-color: var(--blue); transform: translateY(-4px); box-shadow: 0 10px 30px rgba(52,152,219,0.1); }
+        .philosophy-card .icon { font-size: 2rem; color: var(--blue); margin-bottom: 18px; }
+        .philosophy-card h3 { color: var(--dark-text); font-size: 1.2rem; margin-bottom: 12px; font-weight: 600; }
+        .philosophy-card p { color: var(--gray-text); font-size: 0.9rem; line-height: 1.7; }
+
+        /* 成员卡片 */
+        .member-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 25px; }
+        .member-card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+            padding: 35px 25px; text-align: center; transition: 0.2s; backdrop-filter: blur(5px);
+        }
+        .member-card:hover { border-color: var(--blue); transform: translateY(-4px); box-shadow: 0 10px 30px rgba(52,152,219,0.1); }
+        .member-avatar {
+            width: 90px; height: 90px; border-radius: 50%; margin: 0 auto 18px;
+            display: flex; align-items: center; justify-content: center; font-size: 2rem;
+            color: var(--blue); background: #e3f2fd; border: 2px solid var(--blue);
+        }
+        .member-card h3 { color: var(--dark-text); font-size: 1.1rem; font-weight: 600; }
+        .member-role { color: var(--blue); font-size: 0.85rem; margin: 6px 0 12px; font-weight: 500; }
+        .member-bio { color: var(--gray-text); font-size: 0.85rem; line-height: 1.6; }
+
+        /* 页脚 */
+        footer {
+            text-align: center; padding: 40px 20px; border-top: 1px solid var(--border);
+            color: #999; font-size: 0.85rem;
+        }
+        footer a { color: var(--blue); text-decoration: none; font-weight: 500; }
+        footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 0 20px; }
+            .nav-links { gap: 15px; }
+            .hero { padding: 130px 20px 60px; }
+            .hero h1 { font-size: 2.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <a href="#" class="nav-logo"><span>Null</span>Byte</a>
+        <ul class="nav-links">
+            <li><a href="#about">关于</a></li>
+            <li><a href="#members">成员</a></li>
+            <li><button class="nav-auth-btn" id="openAuthModalBtn">登录 / 注册</button></li>
+        </ul>
+    </nav>
+
+    <!-- 登录注册模态框 -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-card">
+            <button class="modal-close" id="closeAuthModal"><i class="fas fa-times"></i></button>
+            <div class="modal-tabs">
+                <div class="modal-tab active" data-tab="login">登录</div>
+                <div class="modal-tab" data-tab="register">注册</div>
+            </div>
+            <!-- 登录表单 -->
+            <div class="modal-form active" id="loginForm">
+                <input type="email" class="modal-input" id="loginEmail" placeholder="邮箱" />
+                <input type="password" class="modal-input" id="loginPassword" placeholder="密码" />
+                <button class="modal-btn" id="loginBtn">登录</button>
+                <div class="modal-message" id="loginMessage"></div>
+                <a class="forgot-link" id="forgotLink">忘记密码？</a>
+            </div>
+            <!-- 注册表单 -->
+            <div class="modal-form" id="registerForm">
+                <input type="email" class="modal-input" id="signupEmail" placeholder="邮箱" />
+                <div style="display:flex; gap:10px;">
+                    <input type="text" class="modal-input" id="verificationCode" placeholder="验证码" maxlength="6" style="flex:1;" />
+                    <button class="modal-btn secondary" id="getCodeBtn" style="width:auto;">获取验证码</button>
+                </div>
+                <input type="password" class="modal-input" id="signupPassword" placeholder="密码（至少6位）" />
+                <input type="password" class="modal-input" id="signupConfirm" placeholder="确认密码" />
+                <button class="modal-btn" id="signupBtn">注册并登录</button>
+                <div class="modal-message" id="signupMessage"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 忘记密码弹窗 -->
+    <div class="modal-overlay" id="forgotModal">
+        <div class="modal-card">
+            <button class="modal-close" id="closeForgotModal"><i class="fas fa-times"></i></button>
+            <h3 style="color:#1a1f2e; margin-bottom:20px; text-align:center;">重置密码</h3>
+            <input type="email" class="modal-input" id="forgotEmail" placeholder="邮箱" />
+            <div style="display:flex; gap:10px; margin:10px 0;">
+                <input type="text" class="modal-input" id="forgotCode" placeholder="验证码" maxlength="6" style="flex:1;" />
+                <button class="modal-btn secondary" id="forgotGetCodeBtn" style="width:auto;">获取验证码</button>
+            </div>
+            <input type="password" class="modal-input" id="forgotNewPassword" placeholder="新密码（至少6位）" />
+            <button class="modal-btn" id="forgotSubmitBtn">重置密码</button>
+            <div class="modal-message" id="forgotMessage"></div>
+        </div>
+    </div>
+
+    <!-- 英雄区 -->
+    <section class="hero">
+        <h1>守护安全的<span>终结符</span></h1>
+        <p>NullByte 是一支专注于网络安全前沿技术的研究型团队。我们坚信，真正的安全始于对每一处细节的极致探索。</p>
+    </section>
+
+    <!-- 团队理念 -->
+    <section class="section" id="about">
+        <div class="section-label">Our Philosophy</div>
+        <h2 class="section-title">团队理念</h2>
+        <div class="section-line"></div>
+        <div class="grid-3">
+            <div class="philosophy-card">
+                <div class="icon"><i class="fas fa-search"></i></div>
+                <h3>深度漏洞研究</h3>
+                <p>从源码审计到逆向工程，追寻每一个潜在的攻击面与脆弱点。</p>
+            </div>
+            <div class="philosophy-card">
+                <div class="icon"><i class="fas fa-shield-alt"></i></div>
+                <h3>纵深防御体系</h3>
+                <p>构建从边界到终端的全链路防护，打造可验证的安全闭环。</p>
+            </div>
+            <div class="philosophy-card">
+                <div class="icon"><i class="fas fa-tools"></i></div>
+                <h3>自动化工具链</h3>
+                <p>自研渗透测试框架与扫描器，让安全检测更高效、更持续。</p>
+            </div>
+            <div class="philosophy-card">
+                <div class="icon"><i class="fas fa-lock"></i></div>
+                <h3>密码学应用</h3>
+                <p>探索后量子密码与零知识证明，守护数据的终极机密。</p>
+            </div>
+            <div class="philosophy-card">
+                <div class="icon"><i class="fas fa-cloud"></i></div>
+                <h3>云原生安全</h3>
+                <p>覆盖主流云平台的安全配置审计与容器化环境加固。</p>
+            </div>
+            <div class="philosophy-card">
+                <div class="icon"><i class="fas fa-users"></i></div>
+                <h3>知识共享</h3>
+                <p>撰写技术博客、开源工具、举办内部沙龙，与社区共同成长。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 核心成员 -->
+    <section class="section" id="members">
+        <div class="section-label">Core Team</div>
+        <h2 class="section-title">核心成员</h2>
+        <div class="section-line"></div>
+        <div class="member-grid">
+            <div class="member-card">
+                <div class="member-avatar"><i class="fas fa-user-secret"></i></div>
+                <h3>测试</h3>
+                <p class="member-role">Founder · 渗透测试工程师</p>
+                <p class="member-bio">10后网络安全爱好者，专注于Web安全与内网渗透，NullByte 发起人。</p>
+            </div>
+            <div class="member-card">
+                <div class="member-avatar"><i class="fas fa-code"></i></div>
+                <h3>测试</h3>
+                <p class="member-role">逆向工程师</p>
+                <p class="member-bio">擅长x86/ARM逆向分析，热衷挖掘IoT设备漏洞与固件解密。</p>
+            </div>
+            <div class="member-card">
+                <div class="member-avatar"><i class="fas fa-network-wired"></i></div>
+                <h3>测试</h3>
+                <p class="member-role">网络协议分析师</p>
+                <p class="member-bio">专注协议栈安全，擅长自定义协议Fuzzing与流量特征分析。</p>
+            </div>
+            <div class="member-card">
+                <div class="member-avatar"><i class="fas fa-key"></i></div>
+                <h3>测试</h3>
+                <p class="member-role">密码学研究员</p>
+                <p class="member-bio">研究同态加密与安全多方计算，为团队提供密码学理论支持。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer>
+        <p>&copy; 2026 NullByte Security Team · 守护数字世界的阳光</p>
+        <p style="margin-top:8px;">联系邮箱：<a href="mailto:kali0914@yeah.net">kali0914@yeah.net</a></p>
+    </footer>
+
+    <script>
+        // ========== Supabase & EmailJS 配置 ==========
+        const SUPABASE_URL = 'https://mvyswsnhufdoupbxxrwh.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12eXN3c25odWZkb3VwYnh4cndoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3MjM0MzMsImV4cCI6MjA5NjI5OTQzM30.xg9DOX5ddnQ-XJWJUuhMP2kENiBTsL94UnzPlGfIuPA';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        emailjs.init('BxxYjY2doKGPtnK3m');
+        const EMAILJS_SERVICE_ID = 'service_cq7zvlp';
+        const EMAILJS_TEMPLATE_ID = 'template_ue3fr0y';
+        const FORGOT_TEMPLATE_ID = 'template_pvd48gh';
+
+        let generatedCode = '', codeExpiry = 0;
+        let forgotGeneratedCode = '', forgotCodeExpiry = 0;
+
+        // ========== DOM 元素（确保所有元素存在） ==========
+        const authModal = document.getElementById('authModal');
+        const openAuthBtn = document.getElementById('openAuthModalBtn');
+        const closeAuthBtn = document.getElementById('closeAuthModal');
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        const getCodeBtn = document.getElementById('getCodeBtn');
+        const loginMessage = document.getElementById('loginMessage');
+        const signupMessage = document.getElementById('signupMessage');
+        const forgotModal = document.getElementById('forgotModal');
+
+        // ========== 打开/关闭模态框 ==========
+        openAuthBtn.addEventListener('click', function() {
+            authModal.classList.add('active');
+        });
+        closeAuthBtn.addEventListener('click', function() {
+            authModal.classList.remove('active');
+        });
+        authModal.addEventListener('click', function(e) {
+            if (e.target === authModal) authModal.classList.remove('active');
+        });
+
+        document.getElementById('closeForgotModal').addEventListener('click', function() {
+            forgotModal.classList.remove('active');
+        });
+        forgotModal.addEventListener('click', function(e) {
+            if (e.target === forgotModal) forgotModal.classList.remove('active');
+        });
+
+        // ========== 登录/注册标签切换 ==========
+        document.querySelectorAll('.modal-tab').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                document.querySelectorAll('.modal-form').forEach(f => f.classList.remove('active'));
+                if (this.dataset.tab === 'login') {
+                    document.getElementById('loginForm').classList.add('active');
+                } else {
+                    document.getElementById('registerForm').classList.add('active');
+                }
+            });
+        });
+
+        // ========== 忘记密码链接 ==========
+        document.getElementById('forgotLink').addEventListener('click', function() {
+            authModal.classList.remove('active');
+            forgotModal.classList.add('active');
+        });
+
+        // ========== 发送验证码 (注册) ==========
+        getCodeBtn.addEventListener('click', async function() {
+            const email = document.getElementById('signupEmail').value.trim();
+            if (!email) {
+                signupMessage.textContent = '请输入邮箱';
+                return;
+            }
+            generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+            codeExpiry = Date.now() + 5 * 60 * 1000;
+            getCodeBtn.disabled = true;
+            getCodeBtn.textContent = '发送中...';
+            try {
+                await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_email: email, code: generatedCode });
+                signupMessage.textContent = '验证码已发送';
+                signupMessage.style.color = '#2ecc71';
+                getCodeBtn.textContent = '重新发送';
+                getCodeBtn.disabled = false;
+            } catch (e) {
+                signupMessage.textContent = '发送失败：' + (e.text || e.message);
+                signupMessage.style.color = '#e74c3c';
+                getCodeBtn.textContent = '获取验证码';
+                getCodeBtn.disabled = false;
+            }
+        });
+
+        // ========== 登录 ==========
+        loginBtn.addEventListener('click', async function() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            if (!email || !password) {
+                loginMessage.textContent = '请填写邮箱和密码';
+                return;
+            }
+            loginMessage.textContent = '登录中...';
+            loginMessage.style.color = '#333';
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                loginMessage.textContent = error.message.includes('Invalid login') ? '邮箱或密码错误' : error.message;
+                loginMessage.style.color = '#e74c3c';
+            } else {
+                authModal.classList.remove('active');
+                alert('登录成功！');
+            }
+        });
+
+        // ========== 注册 ==========
+        signupBtn.addEventListener('click', async function() {
+            const email = document.getElementById('signupEmail').value.trim();
+            const code = document.getElementById('verificationCode').value.trim();
+            const password = document.getElementById('signupPassword').value.trim();
+            const confirm = document.getElementById('signupConfirm').value.trim();
+            if (!email || !code || !password || !confirm) {
+                signupMessage.textContent = '请完整填写所有字段';
+                return;
+            }
+            if (password.length < 6) {
+                signupMessage.textContent = '密码至少6位';
+                return;
+            }
+            if (password !== confirm) {
+                signupMessage.textContent = '两次密码不一致';
+                return;
+            }
+            if (Date.now() > codeExpiry) {
+                signupMessage.textContent = '验证码已过期';
+                return;
+            }
+            if (code !== generatedCode) {
+                signupMessage.textContent = '验证码错误';
+                return;
+            }
+            signupMessage.textContent = '注册中...';
+            signupMessage.style.color = '#333';
+            const { error } = await supabase.auth.signUp({ email, password });
+            if (error) {
+                signupMessage.textContent = error.message.includes('already registered') ? '该邮箱已被注册' : error.message;
+                signupMessage.style.color = '#e74c3c';
+            } else {
+                signupMessage.textContent = '注册成功！';
+                signupMessage.style.color = '#2ecc71';
+                setTimeout(function() { authModal.classList.remove('active'); }, 1500);
+            }
+        });
+
+        // ========== 忘记密码 - 发送验证码 ==========
+        document.getElementById('forgotGetCodeBtn').addEventListener('click', async function() {
+            const email = document.getElementById('forgotEmail').value.trim();
+            const msg = document.getElementById('forgotMessage');
+            if (!email) {
+                msg.textContent = '请输入邮箱';
+                return;
+            }
+            forgotGeneratedCode = Math.floor(100000 + Math.random() * 900000).toString();
+            forgotCodeExpiry = Date.now() + 5 * 60 * 1000;
+            const btn = document.getElementById('forgotGetCodeBtn');
+btn.V = E;
+textContent=C；
+尝试 {
+等待 EMAILJS.我(EMAILJS_SERVICE_ID，forgoted_TEMPLATE_ID，{to_EMAIL:EMAIL，代码：forgotGeneratedCode}）；
+msg.S=C；
+msg.江.我 = '#2ecc71';
+textContent=P；
+btn.T = M;
+}渔获量{
+msg.B=哟+（e.D|||||e.英）；
+msg.语.字 = '#e74c3c';
+B渔一个获S量MSGTEX=母；
+STC英语字母表的第25个字母哟.升NETCE哟表升T哟M江STG E
+            }
+X);
+
+T/ C
+哟NTENTBT.ND我的一个B升EDD哟C英语字母表的第21个字母M(第).我个字母表的第六个字母哟江G哟TS英语字母表的第21个字母BM我TBT(字, VENT升 我STENE江母() {
+升我CK一个 S英语字母表的第25个字母NC字母表的第六个字母 英语字母表的第21个字母
+NCT我哟 NC哟N S
+TEM一个我 升C哟NSTC哟DEC 哟
+}NSTN EWP 一个
+尝试|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+等待 EMAILJS..EMAILJS_SERVICE_ID，forgoted_TEMPLATE_ID，
+to_EMAIL:EMAIL，代码:forgotGeneratedCode;
+            }
+）； (按钮.=V6我英语字母表的第 25B渔一个获字
+语.=.S MSGTEX；=STC英语字母表的第个字母哟=======升= NETCE;21哟表升
+/MT;
+            }
+=阶段EXTC哟NTENTBT。+请将下面的文本准确无误地翻译成我的一个 (B在我的身边.|||||个字母.M第我个字母表的第六个字母哟江() > 个字母******************) {
+.“BM”这个词在中文里通常没有特定的.字，999 CK =
+个字母=N25
+C在我的面前个字母 NCT*****************************************************************************************************************************************************************************************************.数控
+发泄
+斯泰内/ 数控
+发泄!
+斯泰内************************
+CK
+数控***
+=[设备]CK
+********************************************************************************************************************************************************************************************************EWP（环境工作组）*******=======这个短语没有明确的含义
+            }
+Corporation）NSTN
+*=SGTEXT21 C
+这个短语没有明确的含义
+数控
+*=SGTEXT21 C
+make）edttNsdd
+你
+你
+你make）edttNsdd
+NTENT（此为专有名词，you you make）edttNsdd
+N计算机断层扫描数控=
+EB哟=）；you）
