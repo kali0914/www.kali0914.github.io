@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>网安工作室 · 前后端连接测试</title>
+  <style>
+    /* ===== 页面样式 ===== */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      max-width: 720px;
+      margin: 60px auto;
+      padding: 0 20px;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    .card {
+      background: white;
+      padding: 32px 28px;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 0;
+    }
+    .badge {
+      background: #1e293b;
+      color: white;
+      font-size: 12px;
+      padding: 2px 12px;
+      border-radius: 30px;
+      font-weight: 400;
+    }
+    label {
+      font-weight: 500;
+      font-size: 14px;
+      display: block;
+      margin-top: 16px;
+    }
+    input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 14px;
+      box-sizing: border-box;
+      margin-top: 6px;
+    }
+    button {
+      background: #0f172a;
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 40px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 18px;
+    }
+    button:hover {
+      background: #1e293b;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .result-box {
+      margin-top: 24px;
+      background: #f1f5f9;
+      padding: 18px 20px;
+      border-radius: 12px;
+      border-left: 4px solid #0f172a;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 80px;
+      transition: all 0.2s;
+    }
+    .result-box.loading {
+      opacity: 0.6;
+      border-left-color: #f59e0b;
+    }
+    .result-box.success {
+      border-left-color: #22c55e;
+      background: #f0fdf4;
+    }
+    .result-box.error {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+    .meta {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #475569;
+    }
+    .meta span {
+      font-weight: 600;
+    }
+    .footer-tip {
+      margin-top: 20px;
+      font-size: 13px;
+      color: #94a3b8;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>
+    🔗 连接测试
+    <span class="badge">Worker 后端</span>
+  </h1>
+  <p style="color: #475569; margin-bottom: 4px;">输入 Worker 地址，点击按钮测试前后端是否连通。</p>
+
+  <label for="workerUrl">📍 Worker 地址（后端 API）：</label>
+  <input type="text" id="workerUrl" placeholder="https://你的-worker名.你的子域.workers.dev" 
+         value="https://my-backend-api.your-subdomain.workers.dev" />
+
+  <button id="testBtn">🚀 发送测试请求</button>
+
+  <div id="result" class="result-box">💡 等待请求…</div>
+
+  <div class="meta">
+    ⚡ 响应时间：<span id="latency">-</span> ms &nbsp;·&nbsp; 状态码：<span id="statusCode">-</span>
+  </div>
+  <div class="footer-tip">
+    ⚙️ 提示：如果请求失败，请检查 Worker 地址是否正确，以及 Worker 代码是否已部署。
+  </div>
+</div>
+
+<script>
+  // ===== 前端交互逻辑 =====
+  const testBtn = document.getElementById('testBtn');
+  const resultDiv = document.getElementById('result');
+  const latencySpan = document.getElementById('latency');
+  const statusSpan = document.getElementById('statusCode');
+  const workerUrlInput = document.getElementById('workerUrl');
+
+  // 从浏览器本地存储读取上次保存的地址（方便调试）
+  if (localStorage.getItem('workerTestUrl')) {
+    workerUrlInput.value = localStorage.getItem('workerTestUrl');
+  }
+
+  testBtn.addEventListener('click', async () => {
+    const url = workerUrlInput.value.trim();
+    if (!url) {
+      alert('⚠️ 请先输入 Worker 地址');
+      return;
+    }
+    // 保存到本地存储
+    localStorage.setItem('workerTestUrl', url);
+
+    // ===== UI 状态：请求中 =====
+    testBtn.disabled = true;
+    testBtn.textContent = '⏳ 请求中…';
+    resultDiv.className = 'result-box loading';
+    resultDiv.textContent = '⏳ 正在连接后端，请稍候…';
+    latencySpan.textContent = '...';
+    statusSpan.textContent = '...';
+
+    const startTime = performance.now();
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const endTime = performance.now();
+      const latency = Math.round(endTime - startTime);
+      latencySpan.textContent = latency;
+      statusSpan.textContent = response.status;
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // ===== 成功 =====
+      resultDiv.className = 'result-box success';
+      resultDiv.textContent = JSON.stringify(data, null, 2);
+    } catch (error) {
+      // ===== 失败 =====
+      resultDiv.className = 'result-box error';
+      resultDiv.textContent = `❌ 请求失败：${error.message}`;
+      statusSpan.textContent = '失败';
+    } finally {
+      // ===== UI 状态：恢复 =====
+      testBtn.disabled = false;
+      testBtn.textContent = '🚀 发送测试请求';
+    }
+  });
+</script>
+
+</body>
+</html>
