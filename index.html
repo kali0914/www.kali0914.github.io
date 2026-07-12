@@ -48,7 +48,8 @@
 </script>
 
 <script type="module">
-    import * as faceapi from '@vladmandic/face-api';
+    // ===== 关键修改：使用默认导入 =====
+    import faceapi from '@vladmandic/face-api';
 
     // ============================================================
     // 1. 🔑 假 token 拆成 10 段（你提供的）
@@ -111,10 +112,13 @@
     }
 
     // ---------- 加载模型 & 摄像头 ----------
-    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/';
+    // 使用更稳定的国内镜像（gcore 加速）
+    const MODEL_URL = 'https://gcore.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/';
+
     async function init() {
         try {
             statusDiv.textContent = '⏳ 下载模型 (约20MB)...';
+            // ===== 修复：现在 nets 已经正确定义 =====
             await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
             await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
             await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
@@ -125,6 +129,7 @@
             statusDiv.textContent = '✅ 就绪，可注册或识别';
         } catch (err) {
             statusDiv.textContent = `❌ 初始化失败: ${err.message}`;
+            console.error('初始化错误详情:', err);
         }
     }
     init();
@@ -172,7 +177,7 @@
             statusDiv.textContent = `✅ 注册成功！姓名: ${name}，已存入 GitHub 仓库`;
         } catch (err) {
             statusDiv.textContent = `❌ 注册失败: ${err.message}`;
-            console.error(err);  // 控制台打印详细错误
+            console.error(err);
         }
     });
 
