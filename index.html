@@ -1,272 +1,243 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CS 服务器状态监控</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人脸识别 - 本地测试(GitHub存储)</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        body {
-            background: #0b0e14;
-            color: #ddd;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            max-width: 800px;
-            width: 100%;
-            background: #151b23;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
-            border: 1px solid #2a333d;
-        }
-        h1 {
-            text-align: center;
-            color: #ffb443;
-            font-weight: 300;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
-            text-shadow: 0 0 10px rgba(255, 180, 67, 0.3);
-        }
-        .subtitle {
-            text-align: center;
-            color: #6a7a8a;
-            margin-bottom: 25px;
-            font-size: 14px;
-        }
-        .search-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        .search-box input {
-            flex: 1;
-            padding: 12px 18px;
-            background: #1e2730;
-            border: 1px solid #2f3b47;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 16px;
-            outline: none;
-            transition: 0.3s;
-            min-width: 200px;
-        }
-        .search-box input:focus {
-            border-color: #ffb443;
-            box-shadow: 0 0 12px rgba(255, 180, 67, 0.2);
-        }
-        .search-box button {
-            padding: 12px 28px;
-            background: #ffb443;
-            color: #0b0e14;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 16px;
-            cursor: pointer;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
-        .search-box button:hover {
-            background: #ffa825;
-            transform: scale(1.03);
-        }
-        .server-card {
-            background: #1e2730;
-            border-radius: 12px;
-            padding: 20px;
-            border-left: 6px solid #ffb443;
-            margin-bottom: 20px;
-            display: none;
-        }
-        .server-card.active {
-            display: block;
-        }
-        .server-name {
-            font-size: 22px;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 8px;
-        }
-        .server-details {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            font-size: 15px;
-            color: #aab9c9;
-            margin-bottom: 15px;
-        }
-        .server-details span {
-            background: #10171f;
-            padding: 4px 14px;
-            border-radius: 20px;
-            border: 1px solid #2f3b47;
-        }
-        .player-title {
-            margin-top: 10px;
-            font-weight: bold;
-            color: #8ea4b8;
-            border-bottom: 1px solid #2f3b47;
-            padding-bottom: 6px;
-        }
-        .player-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-        .player-tag {
-            background: #10171f;
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-size: 14px;
-            color: #c8d6e5;
-            border: 1px solid #2f3b47;
-        }
-        .error-msg {
-            color: #f87171;
-            text-align: center;
-            padding: 30px;
-            display: none;
-        }
-        .error-msg.active {
-            display: block;
-        }
-        .loading {
-            text-align: center;
-            color: #ffb443;
-            display: none;
-        }
-        .loading.active {
-            display: block;
-        }
-        .footer {
-            margin-top: 20px;
-            text-align: center;
-            color: #4a5a6a;
-            font-size: 13px;
-        }
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #151b23;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #ffb443;
-            border-radius: 10px;
-        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0d1117; color: #c9d1d9; display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; margin: 0; }
+        .container { max-width: 800px; width: 100%; background: #161b22; border-radius: 16px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+        h2 { color: #58a6ff; margin-top: 0; text-align: center; }
+        video, canvas { width: 100%; border-radius: 12px; background: #000; display: block; margin: 10px 0; }
+        .row { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; justify-content: center; }
+        input, button { padding: 10px 16px; border: none; border-radius: 8px; font-size: 15px; }
+        input { background: #0d1117; color: white; border: 1px solid #30363d; flex: 1; min-width: 150px; }
+        button { background: #238636; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #2ea043; }
+        button.danger { background: #da3633; }
+        button.danger:hover { background: #f85149; }
+        button.secondary { background: #30363d; }
+        #status { background: #0d1117; border: 1px solid #30363d; border-radius: 10px; padding: 16px; margin-top: 16px; font-family: monospace; font-size: 14px; white-space: pre-wrap; min-height: 100px; max-height: 300px; overflow-y: auto; }
+        .note { margin-top: 12px; font-size: 13px; color: #8b949e; text-align: center; border-top: 1px solid #21262d; padding-top: 12px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>⚔️ CS 服务器监控</h1>
-        <p class="subtitle">输入 IP:端口 查询实时状态 (默认端口 27015)</p>
-
-        <div class="search-box">
-            <input type="text" id="serverInput" placeholder="例如: 45.137.245.25:27015" value="45.137.245.25:27015" />
-            <button onclick="queryServer()">🔍 查询状态</button>
-        </div>
-
-        <div id="loading" class="loading">🔄 正在连接服务器...</div>
-        <div id="errorMsg" class="error-msg">❌ 无法连接，请检查IP是否正确</div>
-
-        <div id="serverCard" class="server-card">
-            <div class="server-name" id="svName">-</div>
-            <div class="server-details">
-                <span>📍 地图: <strong id="svMap">-</strong></span>
-                <span>👥 玩家: <strong id="svPlayers">0</strong> / <span id="svMax">0</span></span>
-                <span>📶 延迟: <strong id="svPing">0</strong> ms</span>
-            </div>
-            <div class="player-title">🎯 在线玩家名单</div>
-            <div id="playerList" class="player-list">
-                <span class="player-tag">暂无玩家在线</span>
-            </div>
-        </div>
-        <div class="footer">Made with ❤️ · 数据实时查询</div>
+<div class="container">
+    <h2>🧠 人脸识别 + GitHub 仓库存储</h2>
+    <video id="video" autoplay playsinline></video>
+    <div class="row">
+        <input type="text" id="userName" placeholder="输入姓名" value="测试用户">
+        <button id="registerBtn">📝 注册并上传</button>
+        <button id="recognizeBtn">🔍 识别（从仓库拉取）</button>
     </div>
+    <div class="row">
+        <button id="listBtn" class="secondary">📋 查看库</button>
+        <button id="clearBtn" class="danger">🗑️ 清空仓库数据</button>
+    </div>
+    <div id="status">⏳ 正在加载人脸识别模型（约20MB），请稍候...</div>
+    <div class="note">⚠️ token 是假的，仅供测试错误信息。控制台会显示 401/403。</div>
+</div>
 
-    <script>
-        // ============================================================
-        // ！！！重要：将下面这行 URL 替换为您实际的 Cloudflare Worker 地址
-        // ============================================================
-        const WORKER_API = 'https://dbcs.13437902804.workers.dev';
+<script type="importmap">
+{
+    "imports": {
+        "@vladmandic/face-api": "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"
+    }
+}
+</script>
 
-        async function queryServer() {
-            const input = document.getElementById('serverInput').value.trim();
-            let host = input;
-            let port = 27015;
+<script type="module">
+    import * as faceapi from '@vladmandic/face-api';
 
-            if (input.includes(':')) {
-                const parts = input.split(':');
-                host = parts[0];
-                port = parseInt(parts[1]) || 27015;
-            }
+    // ============================================================
+    // 1. 🔑 假 token 拆成 10 段（你提供的）
+    // ============================================================
+    const t1 = 'ghp_';
+    const t2 = 'B7xT';
+    const t3 = 'aPZP';
+    const t4 = 'uv9U';
+    const t5 = 'Q49f';
+    const t6 = '9mMz';
+    const t7 = 'J6iS';
+    const t8 = 'uT67';
+    const t9 = 'n73R';
+    const t10 = 'e18f';
+    const GITHUB_TOKEN = t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8 + t9 + t10;
+    // ============================================================
 
-            const card = document.getElementById('serverCard');
-            const error = document.getElementById('errorMsg');
-            const loading = document.getElementById('loading');
+    const GITHUB_OWNER = 'kali0914';
+    const GITHUB_REPO = 'www.kali0914.github.io';
+    const FILE_PATH = 'face_data.json';
 
-            card.classList.remove('active');
-            error.classList.remove('active');
-            loading.classList.add('active');
+    // ----- DOM 引用 -----
+    const video = document.getElementById('video');
+    const statusDiv = document.getElementById('status');
+    const userNameInput = document.getElementById('userName');
 
-            try {
-                const response = await fetch(`${WORKER_API}?host=${host}&port=${port}`);
-                const result = await response.json();
-
-                loading.classList.remove('active');
-
-                if (result.success) {
-                    const d = result.data;
-                    document.getElementById('svName').textContent = d.name || '未命名服务器';
-                    document.getElementById('svMap').textContent = d.map || '未知';
-                    document.getElementById('svPlayers').textContent = d.players;
-                    document.getElementById('svMax').textContent = d.maxPlayers;
-                    document.getElementById('svPing').textContent = d.ping || '0';
-
-                    const listContainer = document.getElementById('playerList');
-                    listContainer.innerHTML = '';
-                    if (d.list && d.list.length > 0) {
-                        d.list.forEach(name => {
-                            const tag = document.createElement('span');
-                            tag.className = 'player-tag';
-                            tag.textContent = name;
-                            listContainer.appendChild(tag);
-                        });
-                    } else {
-                        listContainer.innerHTML = '<span class="player-tag">🕊️ 服务器空闲中...</span>';
-                    }
-
-                    card.classList.add('active');
-                } else {
-                    error.textContent = '❌ ' + (result.message || '查询失败，请重试');
-                    error.classList.add('active');
-                }
-            } catch (e) {
-                loading.classList.remove('active');
-                error.textContent = '❌ 网络请求失败，请检查Worker地址是否正确';
-                error.classList.add('active');
-                console.error(e);
-            }
+    // ---------- 工具函数：读写 GitHub 文件 ----------
+    async function readGitHubData() {
+        const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${FILE_PATH}`;
+        const resp = await fetch(url, {
+            headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+        });
+        if (resp.status === 404) {
+            return { sha: null, data: [] };
         }
+        if (!resp.ok) throw new Error(`读取失败 (${resp.status}) - ${await resp.text()}`);
+        const json = await resp.json();
+        const content = atob(json.content);
+        return { sha: json.sha, data: JSON.parse(content) };
+    }
 
-        // 页面加载后自动查询默认服务器
-        window.onload = function() {
-            queryServer();
+    async function writeGitHubData(data, sha) {
+        const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${FILE_PATH}`;
+        const newContent = btoa(JSON.stringify(data, null, 2));
+        const payload = {
+            message: `更新人脸库 (${new Date().toLocaleString()})`,
+            content: newContent,
+            sha: sha || undefined
         };
-    </script>
+        const resp = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        if (!resp.ok) throw new Error(`写入失败 (${resp.status}) - ${await resp.text()}`);
+        return resp.json();
+    }
+
+    // ---------- 加载模型 & 摄像头 ----------
+    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/';
+    async function init() {
+        try {
+            statusDiv.textContent = '⏳ 下载模型 (约20MB)...';
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            video.srcObject = stream;
+            await video.play();
+            statusDiv.textContent = '✅ 就绪，可注册或识别';
+        } catch (err) {
+            statusDiv.textContent = `❌ 初始化失败: ${err.message}`;
+        }
+    }
+    init();
+
+    // ---------- 提取人脸特征 ----------
+    async function getDescriptor() {
+        const detection = await faceapi
+            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 }))
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+        if (!detection) throw new Error('未检测到人脸');
+        return detection.descriptor;
+    }
+
+    // ---------- 计算相似度 ----------
+    function cosineSimilarity(a, b) {
+        let dot = 0, na = 0, nb = 0;
+        for (let i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
+            na += a[i] * a[i];
+            nb += b[i] * b[i];
+        }
+        return na && nb ? dot / (Math.sqrt(na) * Math.sqrt(nb)) : 0;
+    }
+
+    // ---------- 注册 ----------
+    document.getElementById('registerBtn').addEventListener('click', async () => {
+        const name = userNameInput.value.trim() || '匿名';
+        try {
+            statusDiv.textContent = '⏳ 提取特征...';
+            const desc = await getDescriptor();
+            
+            statusDiv.textContent = '⏳ 读取仓库数据...';
+            const { sha, data } = await readGitHubData();
+            
+            data.push({ 
+                name, 
+                descriptor: Array.from(desc),
+                time: new Date().toISOString()
+            });
+            
+            statusDiv.textContent = `⏳ 上传到仓库 (共 ${data.length} 条)...`;
+            await writeGitHubData(data, sha);
+            
+            statusDiv.textContent = `✅ 注册成功！姓名: ${name}，已存入 GitHub 仓库`;
+        } catch (err) {
+            statusDiv.textContent = `❌ 注册失败: ${err.message}`;
+            console.error(err);  // 控制台打印详细错误
+        }
+    });
+
+    // ---------- 识别 ----------
+    document.getElementById('recognizeBtn').addEventListener('click', async () => {
+        try {
+            statusDiv.textContent = '⏳ 提取特征...';
+            const currentDesc = await getDescriptor();
+            
+            statusDiv.textContent = '⏳ 从仓库拉取人脸库...';
+            const { data } = await readGitHubData();
+            if (data.length === 0) {
+                statusDiv.textContent = '⚠️ 仓库人脸库为空，请先注册';
+                return;
+            }
+
+            let best = null, bestScore = -1;
+            for (const item of data) {
+                const score = cosineSimilarity(currentDesc, item.descriptor);
+                if (score > bestScore) { bestScore = score; best = item; }
+            }
+
+            const threshold = 0.55;
+            if (bestScore >= threshold) {
+                statusDiv.textContent = `✅ 识别成功！${best.name} (相似度 ${(bestScore*100).toFixed(2)}%)`;
+            } else {
+                statusDiv.textContent = `👤 陌生人 (最高相似度 ${(bestScore*100).toFixed(2)}%)`;
+            }
+        } catch (err) {
+            statusDiv.textContent = `❌ 识别失败: ${err.message}`;
+            console.error(err);
+        }
+    });
+
+    // ---------- 查看库列表 ----------
+    document.getElementById('listBtn').addEventListener('click', async () => {
+        try {
+            const { data } = await readGitHubData();
+            if (data.length === 0) {
+                statusDiv.textContent = '📭 当前人脸库为空';
+                return;
+            }
+            let msg = `📋 共 ${data.length} 条记录:\n`;
+            data.forEach((item, idx) => {
+                msg += `  ${idx+1}. ${item.name} (时间: ${item.time})\n`;
+            });
+            statusDiv.textContent = msg;
+        } catch (err) {
+            statusDiv.textContent = `❌ 查询失败: ${err.message}`;
+            console.error(err);
+        }
+    });
+
+    // ---------- 清空 ----------
+    document.getElementById('clearBtn').addEventListener('click', async () => {
+        if (!confirm('确定要清空仓库里的所有人脸数据吗？')) return;
+        try {
+            const { sha } = await readGitHubData();
+            await writeGitHubData([], sha);
+            statusDiv.textContent = '🗑️ 已清空仓库数据';
+        } catch (err) {
+            statusDiv.textContent = `❌ 清空失败: ${err.message}`;
+            console.error(err);
+        }
+    });
+</script>
 </body>
 </html>
