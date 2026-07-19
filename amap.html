@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>高德地图接入测试</title>
+    <style>
+        /* ===== 全局重置 & 基础 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f5f7fa;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== 顶部导航栏 ===== */
+        .header {
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: #fff;
+            padding: 16px 20px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 12px rgba(26, 115, 232, 0.35);
+            z-index: 10;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header h1 small {
+            font-size: 13px;
+            font-weight: 400;
+            opacity: 0.85;
+            margin-left: 4px;
+        }
+
+        .header .status-badge {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(4px);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .status-badge .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse-dot 1.8s infinite;
+        }
+
+        .status-badge .dot.inactive {
+            background: #ff9800;
+            animation: none;
+        }
+
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(0.8);
+            }
+        }
+
+        /* ===== 地图容器 ===== */
+        #container {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            /* flex限制溢出 */
+            position: relative;
+            background: #e8edf3;
+        }
+
+        /* ===== 地图上的控制浮层 ===== */
+        .map-controls {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 0 16px;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .map-controls .btn-group {
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .map-controls button {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            border: none;
+            border-radius: 30px;
+            padding: 10px 22px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1a2332;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            user-select: none;
+        }
+
+        .map-controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+            background: #ffffff;
+        }
+
+        .map-controls button:active {
+            transform: scale(0.95);
+        }
+
+        .map-controls button .icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .map-controls button.primary {
+            background: #1a73e8;
+            color: #fff;
+            border-color: #1a73e8;
+        }
+
+        .map-controls button.primary:hover {
+            background: #1557b0;
+            border-color: #1557b0;
+        }
+
+        /* ===== 信息卡片（定位结果） ===== */
+        .info-card {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 14px 22px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.13);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            z-index: 20;
+            max-width: 92%;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            opacity: 0;
+            transform: translateX(-50%) translateY(-12px) scale(0.96);
+        }
+
+        .info-card.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+
+        .info-card .title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a73e8;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-card .address {
+            font-size: 15px;
+            font-weight: 500;
+            color: #1a2332;
+            word-break: break-all;
+        }
+
+        .info-card .coords {
+            font-size: 12px;
+            color: #6b7a8f;
+            margin-top: 3px;
+            font-family: "SF Mono", "Menlo", monospace;
+        }
+
+        /* ===== 右下角版权信息 ===== */
+        .footer-credit {
+            position: absolute;
+            bottom: 90px;
+            right: 16px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(4px);
+            padding: 4px 12px;
+            border-radius: 20px;
+            pointer-events: none;
+            z-index: 15;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        /* ===== 加载状态 ===== */
+        .loading-mask {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(2px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        .loading-mask.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-mask .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(26, 115, 232, 0.15);
+            border-top-color: #1a73e8;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+
+        .loading-mask p {
+            margin-top: 16px;
+            color: #1a2332;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 17px;
+            }
+            .header h1 small {
+                font-size: 11px;
+                display: none;
+            }
+            .header .status-badge {
+                font-size: 12px;
+                padding: 4px 12px;
+            }
+            .map-controls button {
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+            .map-controls button .icon {
+                font-size: 16px;
+            }
+            .info-card {
+                top: 14px;
+                padding: 12px 16px;
+                max-width: 96%;
+            }
+            .info-card .address {
+                font-size: 14px;
+            }
+            .footer-credit {
+                bottom: 80px;
+                right: 10px;
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .header {
+                padding: 12px 14px;
+            }
+            .map-controls {
+                bottom: 18px;
+                gap: 8px;
+            }
+            .map-controls .btn-group {
+                gap: 6px;
+            }
+            .map-controls button {
+                padding: 6px 12px;
+                font-size: 12px;
+                border-radius: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 顶部导航 ===== -->
+    <header class="header">
+        <h1>
+            📍 地图测试
+            <small>高德 JS API</small>
+        </h1>
+        <div class="status-badge">
+            <span class="dot" id="statusDot"></span>
+            <span id="statusText">加载中</span>
+        </div>
+    </header>
+
+    <!-- ===== 地图容器 ===== -->
+    <div id="container">
+        <!-- 加载遮罩 -->
+        <div class="loading-mask" id="loadingMask">
+            <div class="spinner"></div>
+            <p>地图加载中 …</p>
+        </div>
+
+        <!-- 信息卡片 -->
+        <div class="info-card" id="infoCard">
+            <div class="title">📍 当前位置</div>
+            <div class="address" id="addressDisplay">—</div>
+            <div class="coords" id="coordsDisplay">—</div>
+        </div>
+
+        <!-- 底部控制按钮 -->
+        <div class="map-controls">
+            <div class="btn-group">
+                <button id="btnLocate" class="primary">
+                    <span class="icon">📌</span> 我的位置
+                </button>
+                <button id="btnZoomIn">
+                    <span class="icon">➕</span> 放大
+                </button>
+                <button id="btnZoomOut">
+                    <span class="icon">➖</span> 缩小
+                </button>
+                <button id="btnReset">
+                    <span class="icon">🔄</span> 重置
+                </button>
+            </div>
+        </div>
+
+        <!-- 右下角版权 -->
+        <div class="footer-credit">© 高德地图 · 测试接入</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 1. 加载高德地图 JS API (使用用户提供的 key)                     -->
+    <!-- ============================================================ -->
+    <script src="https://webapi.amap.com/maps?v=2.0&key=23c5ccc4798b2059e1929a23280d7d56&plugin=AMap.Geolocation">
+    </script>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ---------- DOM 引用 ----------
+            const container = document.getElementById('container');
+            const loadingMask = document.getElementById('loadingMask');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const infoCard = document.getElementById('infoCard');
+            const addressDisplay = document.getElementById('addressDisplay');
+            const coordsDisplay = document.getElementById('coordsDisplay');
+
+            const btnLocate = document.getElementById('btnLocate');
+            const btnZoomIn = document.getElementById('btnZoomIn');
+            const btnZoomOut = document.getElementById('btnZoomOut');
+            const btnReset = document.getElementById('btnReset');
+
+            // ---------- 状态 ----------
+            let map = null;
+            let geolocation = null;
+            let marker = null; // 当前位置标记
+            let circle = null; // 精度圈
+            let isFirstLocate = true; // 首次定位自动展示信息卡
+
+            // 默认视图 (天安门附近, 便于展示)
+            const DEFAULT_CENTER = [116.397428, 39.90923];
+            const DEFAULT_ZOOM = 14;
+
+            // ---------- 更新状态栏 ----------
+            function setStatus(active, text) {
+                if (active) {
+                    statusDot.className = 'dot';
+                } else {
+                    statusDot.className = 'dot inactive';
+                }
+                statusText.textContent = text;
+            }
+
+            // ---------- 显示信息卡片 ----------
+            function showInfoCard(address, lng, lat) {
+                addressDisplay.textContent = address || '获取地址失败';
+                coordsDisplay.textContent = `经度 ${lng.toFixed(6)}  ·  纬度 ${lat.toFixed(6)}`;
+                infoCard.classList.add('visible');
+            }
+
+            function hideInfoCard() {
+                infoCard.classList.remove('visible');
+            }
+
+            // ---------- 在地图上添加定位标记 ----------
+            function updateLocationMarker(lng, lat, accuracy) {
+                // 移除旧标记
+                if (marker) {
+                    map.remove(marker);
+                    marker = null;
+                }
+                if (circle) {
+                    map.remove(circle);
+                    circle = null;
+                }
+
+                // 创建标记
+                marker = new AMap.Marker({
+                    position: [lng, lat],
+                    icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
+                    offset: new AMap.Pixel(-12, -34),
+                    title: '我的位置',
+                    animation: 'AMAP_ANIMATION_DROP',
+                });
+                map.add(marker);
+
+                // 精度圈 (如果有)
+                if (accuracy && accuracy > 0 && accuracy < 5000) {
+                    circle = new AMap.Circle({
+                        center: [lng, lat],
+                        radius: accuracy,
+                        strokeColor: '#1a73e8',
+                        strokeOpacity: 0.35,
+                        strokeWeight: 1.5,
+                        fillColor: '#1a73e8',
+                        fillOpacity: 0.12,
+                    });
+                    map.add(circle);
+                }
+
+                // 移动地图中心到该点
+                map.setCenter([lng, lat]);
+                // 首次定位稍微放大一点
+                if (isFirstLocate) {
+                    map.setZoom(16);
+                    isFirstLocate = false;
+                }
+            }
+
+            // ---------- 定位逻辑 ----------
+            function locateUser() {
+                if (!geolocation) {
+                    setStatus(false, '定位插件未就绪');
+                    return;
+                }
+
+                setStatus(false, '定位中…');
+
+                // 使用高德定位插件
+                geolocation.getCurrentPosition(function(status, result) {
+                    if (status === 'complete') {
+                        // 成功
+                        const pos = result.position;
+                        const lng = pos.getLng();
+                        const lat = pos.getLat();
+                        const accuracy = result.accuracy || 0;
+                        const address = result.formattedAddress || result.address || '已获取坐标';
+
+                        setStatus(true, '定位成功');
+                        updateLocationMarker(lng, lat, accuracy);
+                        showInfoCard(address, lng, lat);
+
+                        console.log('[定位成功]', { lng, lat, accuracy, address });
+
+                    } else {
+                        // 失败
+                        setStatus(false, '定位失败');
+                        console.warn('[定位失败]', result);
+
+                        // 如果是首次加载，给个提示并跳转默认位置
+                        if (isFirstLocate) {
+                            isFirstLocate = false;
+                            map.setCenter(DEFAULT_CENTER);
+                            map.setZoom(DEFAULT_ZOOM);
+                            hideInfoCard();
+                            showFallbackTip();
+                        } else {
+                            // 用户主动点击定位失败，弹窗提示
+                            alert('定位失败，请检查浏览器定位权限或网络。\n' + (result.message || '未知错误'));
+                        }
+                    }
+                }, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000,
+                });
+            }
+
+            // ---------- 首次定位失败时的降级提示 ----------
+            function showFallbackTip() {
+                addressDisplay.textContent = '📍 定位未获取，显示默认位置';
+                coordsDisplay.textContent = '天安门广场 · 请允许浏览器定位权限';
+                infoCard.classList.add('visible');
+                // 3秒后自动隐藏
+                setTimeout(() => {
+                    infoCard.classList.remove('visible');
+                }, 5000);
+            }
+
+            // ---------- 重置视图到默认 ----------
+            function resetView() {
+                map.setCenter(DEFAULT_CENTER);
+                map.setZoom(DEFAULT_ZOOM);
+                // 如果有标记，保留但居中到默认，不清除标记
+                // 但为了体验，我们保留标记不动，只移动视图
+                hideInfoCard();
+                setStatus(true, '已重置');
+                setTimeout(() => {
+                    setStatus(true, '就绪');
+                }, 1200);
+            }
+
+            // ---------- 初始化地图 ----------
+            function initMap() {
+                // 检查 AMap 是否加载
+                if (typeof AMap === 'undefined') {
+                    console.error('高德地图 API 未加载');
+                    loadingMask.classList.add('hidden');
+                    setStatus(false, '加载失败');
+                    return;
+                }
+
+                // 创建地图
+                map = new AMap.Map(container, {
+                    zoom: DEFAULT_ZOOM,
+                    center: DEFAULT_CENTER,
+                    mapStyle: 'amap://styles/whitesmoke', // 清新风格
+                    viewMode: '2D',
+                    pitch: 0,
+                    showIndoorMap: false,
+                    zoomEnable: true,
+                    dragEnable: true,
+                    keyboardEnable: true,
+                    resizeEnable: true,
+                });
+
+                // 添加地图控件 (缩放、比例尺等)
+                map.plugin(['AMap.Scale', 'AMap.ToolBar'], function() {
+                    const scale = new AMap.Scale();
+                    const toolbar = new AMap.ToolBar({
+                        position: 'RT',
+                        offset: new AMap.Pixel(10, 80),
+                    });
+                    map.addControl(scale);
+                    map.addControl(toolbar);
+                });
+
+                // 地图加载完成
+                map.on('complete', function() {
+                    loadingMask.classList.add('hidden');
+                    setStatus(true, '就绪');
+                    console.log('[地图] 加载完成');
+
+                    // 初始化定位插件
+                    map.plugin(['AMap.Geolocation'], function() {
+                        geolocation = new AMap.Geolocation(map, {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 60000,
+                            zoomToAccuracy: true,
+                            showButton: false, // 我们自己控制
+                        });
+
+                        // 自动定位
+                        locateUser();
+                    });
+                });
+
+                // 地图加载错误
+                map.on('error', function(e) {
+                    loadingMask.classList.add('hidden');
+                    setStatus(false, '地图错误');
+                    console.error('[地图错误]', e);
+                });
+
+                // 监听 zoom 变化，更新状态
+                map.on('zoomchange', function() {
+                    // 简单反馈，不做复杂处理
+                });
+            }
+
+            // ---------- 事件绑定 ----------
+            function bindEvents() {
+                btnLocate.addEventListener('click', function() {
+                    locateUser();
+                });
+
+                btnZoomIn.addEventListener('click', function() {
+                    if (map) {
+                        const zoom = map.getZoom();
+                        map.setZoom(Math.min(zoom + 1, 20));
+                    }
+                });
+
+                btnZoomOut.addEventListener('click', function() {
+                    if (map) {
+                        const zoom = map.getZoom();
+                        map.setZoom(Math.max(zoom - 1, 3));
+                    }
+                });
+
+                btnReset.addEventListener('click', function() {
+                    resetView();
+                });
+
+                // 键盘快捷键 (辅助测试)
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'l' || e.key === 'L') {
+                        e.preventDefault();
+                        btnLocate.click();
+                    }
+                    if (e.key === 'r' || e.key === 'R') {
+                        e.preventDefault();
+                        btnReset.click();
+                    }
+                });
+            }
+
+            // ---------- 启动 ----------
+            function init() {
+                // 先显示加载状态
+                setStatus(false, '加载中…');
+                loadingMask.classList.remove('hidden');
+
+                // 等待 API 就绪
+                if (typeof AMap !== 'undefined') {
+                    initMap();
+                } else {
+                    // 有些情况下脚本未加载完成，用轮询检测
+                    let attempts = 0;
+                    const checkAMap = setInterval(function() {
+                        attempts++;
+                        if (typeof AMap !== 'undefined') {
+                            clearInterval(checkAMap);
+                            initMap();
+                        } else if (attempts > 20) {
+                            clearInterval(checkAMap);
+                            loadingMask.classList.add('hidden');
+                            setStatus(false, 'API 加载超时');
+                            console.error('高德 API 加载超时');
+                        }
+                    }, 300);
+                }
+
+                bindEvents();
+            }
+
+            // 页面完全加载后初始化
+            if (document.readyState === 'complete') {
+                init();
+            } else {
+                window.addEventListener('load', init);
+            }
+
+        })();
+    </script>
+
+</body>
+</html>
