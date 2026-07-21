@@ -1,248 +1,531 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人脸识别 - 本地测试(GitHub存储)</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>开源项目测试</title>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0d1117; color: #c9d1d9; display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; margin: 0; }
-        .container { max-width: 800px; width: 100%; background: #161b22; border-radius: 16px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
-        h2 { color: #58a6ff; margin-top: 0; text-align: center; }
-        video, canvas { width: 100%; border-radius: 12px; background: #000; display: block; margin: 10px 0; }
-        .row { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; justify-content: center; }
-        input, button { padding: 10px 16px; border: none; border-radius: 8px; font-size: 15px; }
-        input { background: #0d1117; color: white; border: 1px solid #30363d; flex: 1; min-width: 150px; }
-        button { background: #238636; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #2ea043; }
-        button.danger { background: #da3633; }
-        button.danger:hover { background: #f85149; }
-        button.secondary { background: #30363d; }
-        #status { background: #0d1117; border: 1px solid #30363d; border-radius: 10px; padding: 16px; margin-top: 16px; font-family: monospace; font-size: 14px; white-space: pre-wrap; min-height: 100px; max-height: 300px; overflow-y: auto; }
-        .note { margin-top: 12px; font-size: 13px; color: #8b949e; text-align: center; border-top: 1px solid #21262d; padding-top: 12px; }
+        /* ===== 全局重置 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #f6f9fc 0%, #e9f1f8 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px 20px;
+        }
+
+        /* ===== 主卡片 ===== */
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 48px;
+            padding: 48px 52px 56px;
+            box-shadow:
+                0 30px 60px rgba(0, 20, 40, 0.12),
+                0 8px 24px rgba(0, 20, 40, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        /* ===== 标题区域 ===== */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 44px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #0b1e33, #1a4972);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: inline-block;
+            position: relative;
+        }
+
+        .header h1::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, #2d7bb6, #5ba3e6);
+            border-radius: 4px;
+        }
+
+        .header .subtitle {
+            margin-top: 18px;
+            color: #4a5b6e;
+            font-size: 17px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        .header .subtitle span {
+            font-weight: 600;
+            color: #1a4972;
+            background: rgba(26, 73, 114, 0.08);
+            padding: 2px 14px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        /* ===== 统计栏 ===== */
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            margin-bottom: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stats .count {
+            font-size: 15px;
+            color: #2c3e50;
+        }
+
+        .stats .count strong {
+            font-size: 18px;
+            color: #1a4972;
+        }
+
+        .stats .refresh-btn {
+            background: transparent;
+            border: none;
+            color: #4a6a8a;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            border-radius: 40px;
+            transition: all 0.2s ease;
+            background: rgba(26, 73, 114, 0.06);
+        }
+
+        .stats .refresh-btn:hover {
+            background: rgba(26, 73, 114, 0.14);
+            color: #0b2a4a;
+            transform: rotate(8deg);
+        }
+
+        .stats .refresh-btn svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.6s ease;
+        }
+
+        .stats .refresh-btn:hover svg {
+            transform: rotate(180deg);
+        }
+
+        /* ===== 按钮网格 ===== */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 18px;
+        }
+
+        .grid .empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #7a8fa3;
+            font-size: 17px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 28px;
+            border: 2px dashed rgba(26, 73, 114, 0.15);
+        }
+
+        .grid .empty .icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 16px;
+            opacity: 0.6;
+        }
+
+        /* ===== 按钮卡片 ===== */
+        .test-card {
+            display: block;
+            text-decoration: none;
+            background: white;
+            border-radius: 24px;
+            padding: 28px 12px 24px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 20, 40, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .test-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(45, 123, 182, 0.04), rgba(91, 163, 230, 0.02));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .test-card:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 16px 40px rgba(26, 73, 114, 0.14);
+            border-color: rgba(45, 123, 182, 0.2);
+        }
+
+        .test-card:hover::before {
+            opacity: 1;
+        }
+
+        .test-card:active {
+            transform: translateY(-2px) scale(0.98);
+            transition-duration: 0.08s;
+        }
+
+        .test-card .number {
+            display: inline-block;
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a4972;
+            background: rgba(26, 73, 114, 0.07);
+            width: 56px;
+            height: 56px;
+            line-height: 56px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .test-card:hover .number {
+            background: rgba(26, 73, 114, 0.14);
+            transform: scale(1.05);
+        }
+
+        .test-card .label {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0b1e33;
+            letter-spacing: 0.3px;
+            display: block;
+        }
+
+        .test-card .badge {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #4a7a9a;
+            background: rgba(45, 123, 182, 0.08);
+            padding: 2px 14px;
+            border-radius: 40px;
+            letter-spacing: 0.5px;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .test-card:hover .badge {
+            opacity: 1;
+        }
+
+        /* ===== 加载状态 ===== */
+        .loading {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px 20px;
+            color: #4a6a8a;
+            font-size: 16px;
+        }
+
+        .loading .spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(26, 73, 114, 0.08);
+            border-top-color: #1a4972;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 14px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ===== 错误状态 ===== */
+        .error-msg {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 30px 20px;
+            color: #b34a4a;
+            background: rgba(179, 74, 74, 0.06);
+            border-radius: 20px;
+            border: 1px solid rgba(179, 74, 74, 0.12);
+            font-size: 15px;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 768px) {
+            .container {
+                padding: 28px 20px 32px;
+                border-radius: 32px;
+            }
+
+            .header h1 {
+                font-size: 30px;
+            }
+
+            .header .subtitle {
+                font-size: 15px;
+            }
+
+            .grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 14px;
+            }
+
+            .test-card {
+                padding: 20px 10px 18px;
+            }
+
+            .test-card .number {
+                font-size: 22px;
+                width: 46px;
+                height: 46px;
+                line-height: 46px;
+            }
+
+            .test-card .label {
+                font-size: 16px;
+            }
+
+            .stats {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+                padding: 12px 16px;
+            }
+
+            .stats .refresh-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .container {
+                padding: 20px 14px 24px;
+                border-radius: 24px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .grid {
+                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+                gap: 10px;
+            }
+
+            .test-card {
+                padding: 16px 8px 14px;
+                border-radius: 18px;
+            }
+
+            .test-card .number {
+                font-size: 18px;
+                width: 38px;
+                height: 38px;
+                line-height: 38px;
+            }
+
+            .test-card .label {
+                font-size: 14px;
+            }
+
+            .test-card .badge {
+                font-size: 10px;
+                padding: 1px 10px;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <h2>🧠 人脸识别 + GitHub 仓库存储</h2>
-    <video id="video" autoplay playsinline></video>
-    <div class="row">
-        <input type="text" id="userName" placeholder="输入姓名" value="测试用户">
-        <button id="registerBtn">📝 注册并上传</button>
-        <button id="recognizeBtn">🔍 识别（从仓库拉取）</button>
+
+    <div class="container">
+        <!-- ===== 标题 ===== -->
+        <header class="header">
+            <h1>🚀 开源项目测试</h1>
+            <p class="subtitle">
+                点击下方按钮进入对应的测试页面 &nbsp;·&nbsp;
+                <span>自动扫描根目录</span>
+            </p>
+        </header>
+
+        <!-- ===== 统计栏 ===== -->
+        <div class="stats" id="statsBar">
+            <span class="count" id="countDisplay">⏳ 正在扫描...</span>
+            <button class="refresh-btn" id="refreshBtn" title="刷新列表">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9h-4m-9 9a9 9 0 01-9-9m9 9v-4m-9-5a9 9 0 019-9m-9 9h4" />
+                </svg>
+                刷新
+            </button>
+        </div>
+
+        <!-- ===== 按钮网格 ===== -->
+        <div class="grid" id="gridContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>正在检测测试文件...</div>
+            </div>
+        </div>
     </div>
-    <div class="row">
-        <button id="listBtn" class="secondary">📋 查看库</button>
-        <button id="clearBtn" class="danger">🗑️ 清空仓库数据</button>
-    </div>
-    <div id="status">⏳ 正在加载人脸识别模型（约20MB），请稍候...</div>
-    <div class="note">⚠️ token 是假的，仅供测试错误信息。控制台会显示 401/403。</div>
-</div>
 
-<script type="importmap">
-{
-    "imports": {
-        "@vladmandic/face-api": "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"
-    }
-}
-</script>
+    <script>
+        // ================================================================
+        //  核心逻辑：调用 API 获取文件列表，渲染按钮
+        // ================================================================
 
-<script type="module">
-    // ===== 关键修改：使用默认导入 =====
-    import faceapi from '@vladmandic/face-api';
+        const grid = document.getElementById('gridContainer');
+        const countDisplay = document.getElementById('countDisplay');
 
-    // ============================================================
-    // 1. 🔑 假 token 拆成 10 段（你提供的）
-    // ============================================================
-    const t1 = 'ghp_';
-    const t2 = 'B7xT';
-    const t3 = 'aPZP';
-    const t4 = 'uv9U';
-    const t5 = 'Q49f';
-    const t6 = '9mMz';
-    const t7 = 'J6iS';
-    const t8 = 'uT67';
-    const t9 = 'n73R';
-    const t10 = 'e18f';
-    const GITHUB_TOKEN = t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8 + t9 + t10;
-    // ============================================================
-
-    const GITHUB_OWNER = 'kali0914';
-    const GITHUB_REPO = 'www.kali0914.github.io';
-    const FILE_PATH = 'face_data.json';
-
-    // ----- DOM 引用 -----
-    const video = document.getElementById('video');
-    const statusDiv = document.getElementById('status');
-    const userNameInput = document.getElementById('userName');
-
-    // ---------- 工具函数：读写 GitHub 文件 ----------
-    async function readGitHubData() {
-        const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${FILE_PATH}`;
-        const resp = await fetch(url, {
-            headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
-        });
-        if (resp.status === 404) {
-            return { sha: null, data: [] };
+        /**
+         * 从服务器获取 test*.html 文件列表
+         */
+        async function fetchTestFiles() {
+            const res = await fetch('/api/tests');
+            if (!res.ok) {
+                throw new Error(`API 请求失败 (HTTP ${res.status})`);
+            }
+            return await res.json();
         }
-        if (!resp.ok) throw new Error(`读取失败 (${resp.status}) - ${await resp.text()}`);
-        const json = await resp.json();
-        const content = atob(json.content);
-        return { sha: json.sha, data: JSON.parse(content) };
-    }
 
-    async function writeGitHubData(data, sha) {
-        const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${FILE_PATH}`;
-        const newContent = btoa(JSON.stringify(data, null, 2));
-        const payload = {
-            message: `更新人脸库 (${new Date().toLocaleString()})`,
-            content: newContent,
-            sha: sha || undefined
-        };
-        const resp = await fetch(url, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${GITHUB_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-        if (!resp.ok) throw new Error(`写入失败 (${resp.status}) - ${await resp.text()}`);
-        return resp.json();
-    }
-
-    // ---------- 加载模型 & 摄像头 ----------
-    // 使用更稳定的国内镜像（gcore 加速）
-    const MODEL_URL = 'https://gcore.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/';
-
-    async function init() {
-        try {
-            statusDiv.textContent = '⏳ 下载模型 (约20MB)...';
-            // ===== 修复：现在 nets 已经正确定义 =====
-            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-            await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-            await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-            
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-            video.srcObject = stream;
-            await video.play();
-            statusDiv.textContent = '✅ 就绪，可注册或识别';
-        } catch (err) {
-            statusDiv.textContent = `❌ 初始化失败: ${err.message}`;
-            console.error('初始化错误详情:', err);
+        /**
+         * 从文件名中提取数字 (test1.html → 1)
+         */
+        function extractNumber(filename) {
+            const match = filename.match(/^test(\d+)\.html$/);
+            return match ? parseInt(match[1], 10) : null;
         }
-    }
-    init();
 
-    // ---------- 提取人脸特征 ----------
-    async function getDescriptor() {
-        const detection = await faceapi
-            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 }))
-            .withFaceLandmarks()
-            .withFaceDescriptor();
-        if (!detection) throw new Error('未检测到人脸');
-        return detection.descriptor;
-    }
+        /**
+         * 渲染按钮
+         */
+        function renderButtons(files) {
+            // 清空容器
+            grid.innerHTML = '';
 
-    // ---------- 计算相似度 ----------
-    function cosineSimilarity(a, b) {
-        let dot = 0, na = 0, nb = 0;
-        for (let i = 0; i < a.length; i++) {
-            dot += a[i] * b[i];
-            na += a[i] * a[i];
-            nb += b[i] * b[i];
-        }
-        return na && nb ? dot / (Math.sqrt(na) * Math.sqrt(nb)) : 0;
-    }
-
-    // ---------- 注册 ----------
-    document.getElementById('registerBtn').addEventListener('click', async () => {
-        const name = userNameInput.value.trim() || '匿名';
-        try {
-            statusDiv.textContent = '⏳ 提取特征...';
-            const desc = await getDescriptor();
-            
-            statusDiv.textContent = '⏳ 读取仓库数据...';
-            const { sha, data } = await readGitHubData();
-            
-            data.push({ 
-                name, 
-                descriptor: Array.from(desc),
-                time: new Date().toISOString()
-            });
-            
-            statusDiv.textContent = `⏳ 上传到仓库 (共 ${data.length} 条)...`;
-            await writeGitHubData(data, sha);
-            
-            statusDiv.textContent = `✅ 注册成功！姓名: ${name}，已存入 GitHub 仓库`;
-        } catch (err) {
-            statusDiv.textContent = `❌ 注册失败: ${err.message}`;
-            console.error(err);
-        }
-    });
-
-    // ---------- 识别 ----------
-    document.getElementById('recognizeBtn').addEventListener('click', async () => {
-        try {
-            statusDiv.textContent = '⏳ 提取特征...';
-            const currentDesc = await getDescriptor();
-            
-            statusDiv.textContent = '⏳ 从仓库拉取人脸库...';
-            const { data } = await readGitHubData();
-            if (data.length === 0) {
-                statusDiv.textContent = '⚠️ 仓库人脸库为空，请先注册';
+            if (!files || files.length === 0) {
+                // ----- 空状态 -----
+                grid.innerHTML = `
+                    <div class="empty">
+                        <span class="icon">📂</span>
+                        根目录中没有找到 <strong>test*.html</strong> 文件<br />
+                        <span style="font-size: 14px; opacity: 0.7;">
+                            请创建例如 test1.html, test2.html 等文件
+                        </span>
+                    </div>
+                `;
+                countDisplay.innerHTML = '📭 找到 <strong>0</strong> 个测试页面';
                 return;
             }
 
-            let best = null, bestScore = -1;
-            for (const item of data) {
-                const score = cosineSimilarity(currentDesc, item.descriptor);
-                if (score > bestScore) { bestScore = score; best = item; }
-            }
-
-            const threshold = 0.55;
-            if (bestScore >= threshold) {
-                statusDiv.textContent = `✅ 识别成功！${best.name} (相似度 ${(bestScore*100).toFixed(2)}%)`;
-            } else {
-                statusDiv.textContent = `👤 陌生人 (最高相似度 ${(bestScore*100).toFixed(2)}%)`;
-            }
-        } catch (err) {
-            statusDiv.textContent = `❌ 识别失败: ${err.message}`;
-            console.error(err);
-        }
-    });
-
-    // ---------- 查看库列表 ----------
-    document.getElementById('listBtn').addEventListener('click', async () => {
-        try {
-            const { data } = await readGitHubData();
-            if (data.length === 0) {
-                statusDiv.textContent = '📭 当前人脸库为空';
-                return;
-            }
-            let msg = `📋 共 ${data.length} 条记录:\n`;
-            data.forEach((item, idx) => {
-                msg += `  ${idx+1}. ${item.name} (时间: ${item.time})\n`;
+            // 按数字升序排序
+            const sorted = [...files].sort((a, b) => {
+                const na = extractNumber(a);
+                const nb = extractNumber(b);
+                return (na ?? 0) - (nb ?? 0);
             });
-            statusDiv.textContent = msg;
-        } catch (err) {
-            statusDiv.textContent = `❌ 查询失败: ${err.message}`;
-            console.error(err);
-        }
-    });
 
-    // ---------- 清空 ----------
-    document.getElementById('clearBtn').addEventListener('click', async () => {
-        if (!confirm('确定要清空仓库里的所有人脸数据吗？')) return;
-        try {
-            const { sha } = await readGitHubData();
-            await writeGitHubData([], sha);
-            statusDiv.textContent = '🗑️ 已清空仓库数据';
-        } catch (err) {
-            statusDiv.textContent = `❌ 清空失败: ${err.message}`;
-            console.error(err);
+            // 更新统计
+            countDisplay.innerHTML = `📄 找到 <strong>${sorted.length}</strong> 个测试页面`;
+
+            // 生成按钮
+            for (const filename of sorted) {
+                const num = extractNumber(filename);
+                const displayName = `test${num}`;
+
+                const card = document.createElement('a');
+                card.className = 'test-card';
+                card.href = filename;
+                card.setAttribute('aria-label', `跳转到 ${filename}`);
+
+                card.innerHTML = `
+                    <span class="number">${num}</span>
+                    <span class="label">${displayName}</span>
+                    <span class="badge">.html</span>
+                `;
+
+                grid.appendChild(card);
+            }
         }
-    });
-</script>
+
+        /**
+         * 加载数据并渲染
+         */
+        async function loadData() {
+            // 显示加载状态
+            grid.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>正在检测测试文件...</div>
+                </div>
+            `;
+            countDisplay.innerHTML = '⏳ 正在扫描...';
+
+            try {
+                const files = await fetchTestFiles();
+                renderButtons(files);
+            } catch (err) {
+                console.error('加载失败:', err);
+                grid.innerHTML = `
+                    <div class="error-msg">
+                        ⚠️ 加载失败：${err.message || '未知错误'}<br />
+                        <span style="font-size: 14px; opacity: 0.6;">
+                            请确保后端服务器正在运行
+                        </span>
+                    </div>
+                `;
+                countDisplay.innerHTML = '❌ 扫描失败';
+            }
+        }
+
+        // ================================================================
+        //  事件绑定 & 启动
+        // ================================================================
+
+        // 刷新按钮
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            loadData();
+        });
+
+        // 页面加载完成后自动执行
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+
 </body>
 </html>
